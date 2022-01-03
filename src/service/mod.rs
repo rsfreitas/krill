@@ -141,26 +141,6 @@ impl Service {
     pub fn stop(&self) {
         self.logger.info("stopping service");
     }
-
-    /// Returns error from a gRPC method.
-    pub fn error<R: prost::Message>(
-        error: grpc::ErrorCode,
-    ) -> std::result::Result<tonic::Response<R>, tonic::Status> {
-        Err(grpc::Error::new(error, None).to_status())
-    }
-
-    /// Returns error from a gRPC method with a custom message.
-    pub fn error_with_message<R: prost::Message>(
-        error: grpc::ErrorCode,
-        msg: &str,
-    ) -> std::result::Result<tonic::Response<R>, tonic::Status> {
-        Err(grpc::Error::new(error, Some(msg)).to_status())
-    }
-
-    /// Returns success from a gRPC method.
-    pub fn ok<R: prost::Message>(res: R) -> std::result::Result<tonic::Response<R>, tonic::Status> {
-        Ok(tonic::Response::new(res))
-    }
 }
 
 impl Drop for Service {

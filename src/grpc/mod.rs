@@ -1,77 +1,14 @@
 // We implement here a gRPC middleware to provide access for the Service
 // object inside every RPC method.
 
+pub mod rpc;
+
 use std::sync::Arc;
 use std::task::{Context, Poll};
 use tonic::{body::BoxBody, transport::Body};
 use tower::{Layer, Service};
 
 use crate::service;
-
-/// Response is an alias for RPC's methods result type.
-pub type Response<B> = std::result::Result<tonic::Response<B>, tonic::Status>;
-
-/// Request is an alias for RPC's methods request argument type.
-pub type Request<B> = tonic::Request<B>;
-
-#[derive(Debug)]
-pub struct Error {
-    code: ErrorCode,
-    message: Option<String>,
-}
-
-impl std::error::Error for Error {}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let mut s = format!("code:{}", self.code);
-
-        if let Some(msg) = &self.message {
-            s = format!("{} message:{}", s, msg);
-        }
-
-        write!(f, "{}", s)
-    }
-}
-
-impl Error {
-    pub(crate) fn new(code: ErrorCode, msg: Option<&str>) -> Self {
-        Error {
-            code,
-            message: msg.map(|s| s.to_string()),
-        }
-    }
-
-    pub(crate) fn to_status(&self) -> tonic::Status {
-        let code = match self.code {
-            ErrorCode::Validation => tonic::Code::InvalidArgument,
-            ErrorCode::Internal => tonic::Code::Internal,
-            ErrorCode::NotFound => tonic::Code::NotFound,
-            ErrorCode::Precondition => tonic::Code::FailedPrecondition,
-        };
-
-        tonic::Status::new(code, self.message.clone().unwrap_or_else(|| "".to_string()))
-    }
-}
-
-#[derive(Debug)]
-pub enum ErrorCode {
-    Validation,
-    Internal,
-    NotFound,
-    Precondition,
-}
-
-impl std::fmt::Display for ErrorCode {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match &*self {
-            ErrorCode::Validation => write!(f, "InvalidArgument"),
-            ErrorCode::Internal => write!(f, "InternalError"),
-            ErrorCode::NotFound => write!(f, "NotFound"),
-            ErrorCode::Precondition => write!(f, "FailedPrecondition"),
-        }
-    }
-}
 
 #[derive(Debug, Clone)]
 pub(crate) struct GrpcMiddleware {
