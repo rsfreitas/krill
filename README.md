@@ -26,7 +26,7 @@ pub mod examplev1 {
 }
 
 use examplev1::grpc_service_server::{GrpcService, GrpcServiceServer};
-use micro::grpc;
+use micro::grpc::rpc;
 use micro::service::{
     builder::ServiceBuilder,
     Service,
