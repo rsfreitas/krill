@@ -1,26 +1,28 @@
 pub mod builder;
 
-use crate::config::{Config, ConfigBuilder, GetEnv};
-use crate::definition::{ServiceDefinition, ServiceKind};
-use crate::error::Result;
-use logger::{builder::LoggerBuilder, fields::FieldValue, Logger};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::sync::Arc;
 use std::time::Duration;
 
 use futures_util::FutureExt;
 use http::{request::Request, response::Response};
+use logger::{builder::LoggerBuilder, fields::FieldValue, Logger};
 use tokio::signal;
 use tonic::body::BoxBody;
 use tonic::transport::{Body, NamedService};
 
+use crate::config::{Config, ConfigBuilder, GetEnv};
+use crate::database;
+use crate::definition::{ServiceDefinition, ServiceKind};
+use crate::error::Result;
 use crate::grpc;
-use builder::ServiceBuilder;
+use crate::service::builder::ServiceBuilder;
 
 #[derive(Debug)]
 pub struct Service {
     pub logger: Arc<Logger>,
     pub config: Config,
+    pub database: Arc<database::Database>,
 
     name: String,
 
@@ -30,7 +32,7 @@ pub struct Service {
 }
 
 impl Service {
-    fn new(builder: &ServiceBuilder) -> Result<Arc<Self>> {
+    async fn new(builder: &ServiceBuilder) -> Result<Arc<Self>> {
         let definition = ServiceDefinition::new()?;
         let logger = Arc::new(
             LoggerBuilder::new()
@@ -57,14 +59,12 @@ impl Service {
             config: ConfigBuilder::new().with_logger(&logger).build(),
             logger: logger.clone(),
             port: Service::get_service_port(builder),
+            database: database::Database::new(&builder.credentials, &builder.db_info).await?,
         }))
     }
 
     fn get_service_port(builder: &ServiceBuilder) -> i64 {
-        match Config::get_os_env("SERVICE_PORT") {
-            None => builder.port,
-            Some(port) => port,
-        }
+        Config::get_os_env("SERVICE_PORT", Some(builder.port)).unwrap()
     }
 
     /// Gives back the current service name.
@@ -91,8 +91,6 @@ impl Service {
         S::Future: Send + 'static,
         S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
     {
-        service.service_internals_start();
-
         let layer = tower::ServiceBuilder::new()
             .timeout(Duration::from_secs(30))
             .layer(grpc::GrpcMiddleware::new(service))
@@ -132,14 +130,15 @@ impl Service {
         Ok(())
     }
 
-    fn service_internals_start(&self) {
-        // TODO: database init
-    }
-
     /// Stops the service. This method is called when the Service object is
     /// dropped.
     pub fn stop(&self) {
         self.logger.info("stopping service");
+    }
+
+    /// Give access to the service database driver.
+    pub fn database(&self) -> Arc<database::Database> {
+        self.database.clone()
     }
 }
 
