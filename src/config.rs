@@ -12,7 +12,7 @@ pub(crate) struct ConfigBuilder {
 }
 
 pub(crate) trait GetEnv<T> {
-    fn get_os_env(key: &str) -> Option<T>;
+    fn get_os_env(key: &str, default: Option<T>) -> Option<T>;
 }
 
 impl Config {
@@ -54,20 +54,32 @@ impl Config {
 }
 
 impl GetEnv<String> for Config {
-    fn get_os_env(key: &str) -> Option<String> {
+    fn get_os_env(key: &str, default: Option<String>) -> Option<String> {
         match std::env::var(key.to_string()) {
-            Err(_) => None,
+            Err(_) => default,
             Ok(value) => Some(value),
         }
     }
 }
 
 impl GetEnv<i64> for Config {
-    fn get_os_env(key: &str) -> Option<i64> {
+    fn get_os_env(key: &str, default: Option<i64>) -> Option<i64> {
         match std::env::var(key.to_string()) {
-            Err(_) => None,
+            Err(_) => default,
             Ok(value) => match value.parse::<i64>() {
-                Err(_) => None,
+                Err(_) => default,
+                Ok(i) => Some(i),
+            },
+        }
+    }
+}
+
+impl GetEnv<i32> for Config {
+    fn get_os_env(key: &str, default: Option<i32>) -> Option<i32> {
+        match std::env::var(key.to_string()) {
+            Err(_) => default,
+            Ok(value) => match value.parse::<i32>() {
+                Err(_) => default,
                 Ok(i) => Some(i),
             },
         }
