@@ -89,6 +89,7 @@ impl Database {
         }
     }
 
+    /// Inserts a new record into the current selected collection.
     pub async fn insert<T: serde::Serialize + prost::Message>(
         &self,
         source: &T,
@@ -101,6 +102,7 @@ impl Database {
         collection.insert_one(source, None).await
     }
 
+    /// Finds a single record from the current collection using a custom filter.
     pub async fn find_one<T: prost::Message + serde::de::DeserializeOwned + Unpin>(
         &self,
         filter: Document,
@@ -113,6 +115,7 @@ impl Database {
         collection.find_one(filter, None).await
     }
 
+    /// Finds a single record from the current collection by using an ID as filter.
     pub async fn find_one_by_id<T: prost::Message + serde::de::DeserializeOwned + Unpin>(
         &self,
         id: &str,
@@ -129,6 +132,7 @@ impl Database {
         collection.find_one(filter, None).await
     }
 
+    /// Find one or more records from the current collection using a custom filter.
     pub async fn find_many<T: prost::Message + serde::de::DeserializeOwned + Unpin>(
         &self,
         filter: Document,
@@ -141,10 +145,11 @@ impl Database {
         collection.find(filter, None).await
     }
 
+    /// Updates a single record into the current collection.
     pub async fn update<T: serde::Serialize + prost::Message>(
         &self,
         filter: Document,
-        source: Option<Document>,
+        source: Document,
     ) -> MongoResult<UpdateResult> {
         let db = self
             .client
@@ -152,7 +157,7 @@ impl Database {
 
         let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
         let up = doc! {
-            "$set": source.unwrap(),
+            "$set": source,
         };
 
         collection
@@ -160,6 +165,7 @@ impl Database {
             .await
     }
 
+    /// Deletes a single record from the current selected collection.
     pub async fn delete<T: serde::Serialize + prost::Message>(
         &self,
         filter: Document,
