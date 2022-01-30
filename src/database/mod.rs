@@ -26,10 +26,10 @@ pub struct Credentials {
     pub tls_cacert_path: Option<String>,
 }
 
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Debug)]
 pub struct Info {
     pub database_name: Option<String>,
-    pub table: Option<String>,
+    pub collection: Option<String>,
 }
 
 impl Default for Credentials {
@@ -40,6 +40,15 @@ impl Default for Credentials {
             username: None,
             password: None,
             tls_cacert_path: None,
+        }
+    }
+}
+
+impl Default for Info {
+    fn default() -> Self {
+        Info {
+            database_name: Config::get_os_env("DATABASE_NAME", None),
+            collection: Config::get_os_env("DATABASE_COLLECTION_NAME", None),
         }
     }
 }
@@ -98,7 +107,7 @@ impl Database {
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
-        let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
+        let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         collection.insert_one(source, None).await
     }
 
@@ -111,7 +120,7 @@ impl Database {
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
-        let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
+        let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         collection.find_one(filter, None).await
     }
 
@@ -124,7 +133,7 @@ impl Database {
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
-        let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
+        let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         let filter = doc! {
             "_id": id,
         };
@@ -141,7 +150,7 @@ impl Database {
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
-        let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
+        let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         collection.find(filter, None).await
     }
 
@@ -155,7 +164,7 @@ impl Database {
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
-        let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
+        let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         let up = doc! {
             "$set": source,
         };
@@ -174,7 +183,7 @@ impl Database {
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
-        let collection = db.collection::<T>(self.info.table.as_ref().unwrap());
+        let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         collection.delete_one(filter, None).await
     }
 }
