@@ -5,6 +5,7 @@ pub enum Error {
     InternalOS(String),
     DefinitionParser(String),
     UnsupportedSetting(String),
+    NotFound,
 }
 
 impl Error {
@@ -15,6 +16,7 @@ impl Error {
                 format!("failed to parse service definitions '{}'", s)
             }
             Error::UnsupportedSetting(s) => format!("unsupported toml setting '{}'", s),
+            Error::NotFound => format!("not found"),
         }
     }
 }
