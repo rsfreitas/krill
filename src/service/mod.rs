@@ -73,7 +73,7 @@ impl Service {
     }
 
     /// Retrieves the Service object from RPC's request argument.
-    pub fn from_request<B: prost::Message>(request: tonic::Request<B>) -> Arc<Service> {
+    pub fn from_request<B: prost::Message>(request: &tonic::Request<B>) -> Arc<Service> {
         request.extensions().get::<Arc<Service>>().unwrap().clone()
     }
 
