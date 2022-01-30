@@ -4,7 +4,7 @@ use mongodb::{
     bson::{doc, Document},
     error::Result as MongoResult,
     options::{ClientOptions, UpdateModifications},
-    results::{DeleteResult, InsertOneResult, UpdateResult},
+    results::InsertOneResult,
     Client, Cursor,
 };
 
@@ -134,10 +134,7 @@ impl Database {
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
-        let filter = doc! {
-            "_id": id,
-        };
-
+        let filter = doc! {"_id": id};
         collection.find_one(filter, None).await
     }
 
@@ -155,35 +152,35 @@ impl Database {
     }
 
     /// Updates a single record into the current collection.
-    pub async fn update<T: serde::Serialize + prost::Message>(
+    pub async fn update<T: serde::Serialize + serde::de::DeserializeOwned + prost::Message>(
         &self,
-        filter: Document,
+        id: &str,
         source: Document,
-    ) -> MongoResult<UpdateResult> {
+    ) -> MongoResult<Option<T>> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
-        let up = doc! {
-            "$set": source,
-        };
+        let filter = doc! {"_id": id};
+        let up = doc! {"$set": source};
 
         collection
-            .update_one(filter, UpdateModifications::Document(up), None)
+            .find_one_and_update(filter, UpdateModifications::Document(up), None)
             .await
     }
 
     /// Deletes a single record from the current selected collection.
-    pub async fn delete<T: serde::Serialize + prost::Message>(
+    pub async fn delete<T: serde::Serialize + serde::de::DeserializeOwned + prost::Message>(
         &self,
-        filter: Document,
-    ) -> MongoResult<DeleteResult> {
+        id: &str,
+    ) -> MongoResult<Option<T>> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
-        collection.delete_one(filter, None).await
+        let filter = doc! {"_id": id};
+        collection.find_one_and_delete(filter, None).await
     }
 }
