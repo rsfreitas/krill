@@ -201,7 +201,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 * HTTP microservices
 * Pubsub microservices
 * Task microservices (cronjob)
-* Database access
 * Pluggable interfaces
 
 ## License
