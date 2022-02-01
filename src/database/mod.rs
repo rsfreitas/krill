@@ -4,12 +4,14 @@ use mongodb::{
     bson::{doc, Document},
     error::Result as MongoResult,
     options::{ClientOptions, UpdateModifications},
-    results::InsertOneResult,
     Client, Cursor,
 };
 
 use crate::config::{Config, GetEnv};
 use crate::error::Result;
+use crate::grpc::rpc;
+
+pub type DatabaseResult<T> = std::result::Result<T, tonic::Status>;
 
 #[derive(Debug)]
 pub struct Database {
@@ -102,40 +104,63 @@ impl Database {
     pub async fn insert<T: serde::Serialize + prost::Message>(
         &self,
         source: &T,
-    ) -> MongoResult<InsertOneResult> {
+    ) -> DatabaseResult<()> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
-        collection.insert_one(source, None).await
+
+        match collection.insert_one(source, None).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                Err(rpc::Error::new(rpc::ErrorCode::Internal, Some(&e.to_string())).to_status())
+            }
+        }
     }
 
     /// Finds a single record from the current collection using a custom filter.
     pub async fn find_one<T: prost::Message + serde::de::DeserializeOwned + Unpin>(
         &self,
         filter: Document,
-    ) -> MongoResult<Option<T>> {
+    ) -> DatabaseResult<T> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
-        collection.find_one(filter, None).await
+        match collection.find_one(filter, None).await {
+            Ok(record) => match record {
+                Some(data) => Ok(data),
+                None => Err(rpc::Error::new(rpc::ErrorCode::NotFound, None).to_status()),
+            },
+            Err(e) => {
+                Err(rpc::Error::new(rpc::ErrorCode::Internal, Some(&e.to_string())).to_status())
+            }
+        }
     }
 
     /// Finds a single record from the current collection by using an ID as filter.
     pub async fn find_one_by_id<T: prost::Message + serde::de::DeserializeOwned + Unpin>(
         &self,
         id: &str,
-    ) -> MongoResult<Option<T>> {
+    ) -> DatabaseResult<T> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         let filter = doc! {"_id": id};
-        collection.find_one(filter, None).await
+
+        match collection.find_one(filter, None).await {
+            Ok(record) => match record {
+                Some(data) => Ok(data),
+                None => Err(rpc::Error::new(rpc::ErrorCode::NotFound, None).to_status()),
+            },
+            Err(e) => {
+                Err(rpc::Error::new(rpc::ErrorCode::Internal, Some(&e.to_string())).to_status())
+            }
+        }
     }
 
     /// Find one or more records from the current collection using a custom filter.
@@ -156,7 +181,7 @@ impl Database {
         &self,
         id: &str,
         source: Document,
-    ) -> MongoResult<Option<T>> {
+    ) -> DatabaseResult<T> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
@@ -165,22 +190,42 @@ impl Database {
         let filter = doc! {"_id": id};
         let up = doc! {"$set": source};
 
-        collection
+        let result = collection
             .find_one_and_update(filter, UpdateModifications::Document(up), None)
-            .await
+            .await;
+
+        match result {
+            Ok(record) => match record {
+                Some(data) => Ok(data),
+                None => Err(rpc::Error::new(rpc::ErrorCode::NotFound, None).to_status()),
+            },
+            Err(e) => {
+                Err(rpc::Error::new(rpc::ErrorCode::Internal, Some(&e.to_string())).to_status())
+            }
+        }
     }
 
     /// Deletes a single record from the current selected collection.
     pub async fn delete<T: serde::Serialize + serde::de::DeserializeOwned + prost::Message>(
         &self,
         id: &str,
-    ) -> MongoResult<Option<T>> {
+    ) -> DatabaseResult<T> {
         let db = self
             .client
             .database(self.info.database_name.as_ref().unwrap());
 
         let collection = db.collection::<T>(self.info.collection.as_ref().unwrap());
         let filter = doc! {"_id": id};
-        collection.find_one_and_delete(filter, None).await
+        let result = collection.find_one_and_delete(filter, None).await;
+
+        match result {
+            Ok(record) => match record {
+                Some(data) => Ok(data),
+                None => Err(rpc::Error::new(rpc::ErrorCode::NotFound, None).to_status()),
+            },
+            Err(e) => {
+                Err(rpc::Error::new(rpc::ErrorCode::Internal, Some(&e.to_string())).to_status())
+            }
+        }
     }
 }
