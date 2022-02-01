@@ -122,15 +122,9 @@ impl ExampleService for Server {
         let ex = service
             .database()
             .find_one_by_id::<example::Example>(id)
-            .await;
+            .await?;
 
-        match ex {
-            Ok(example) => match example {
-                Some(e) => rpc::ok(example::GetExampleResponse { example: Some(e) }),
-                None => rpc::error(rpc::ErrorCode::NotFound),
-            },
-            Err(_) => rpc::error(rpc::ErrorCode::Internal),
-        }
+        rpc::ok(example::GetExampleResponse { example: Some(ex) })
     }
 
     async fn create_example(
@@ -145,10 +139,8 @@ impl ExampleService for Server {
             value: *value,
         };
 
-        match service.database().insert(&res).await {
-            Ok(_) => rpc::ok(example::CreateExampleResponse { example: Some(res) }),
-            Err(_) => rpc::error(rpc::ErrorCode::Internal),
-        }
+        let _ service.database().insert(&res).await?;
+        rpc::ok(example::CreateExampleResponse { example: Some(res) })
     }
 
     async fn update_example(
@@ -160,15 +152,9 @@ impl ExampleService for Server {
         let up = service
             .database()
             .update::<example::Example>(id, micro::doc! {"name": name, "value": value})
-            .await;
+            .await?;
 
-        match up {
-            Ok(example) => match example {
-                Some(e) => rpc::ok(example::UpdateExampleResponse { example: Some(e) }),
-                None => rpc::error(rpc::ErrorCode::NotFound),
-            },
-            Err(_) => rpc::error(rpc::ErrorCode::Internal),
-        }
+        rpc::ok(example::UpdateExampleResponse { example: Some(up) })
     }
 
     async fn delete_example(
@@ -177,15 +163,8 @@ impl ExampleService for Server {
     ) -> rpc::Response<example::DeleteExampleResponse> {
         let service = Service::from_request(request);
         let example::DeleteExampleRequest { id } = &request.into_inner();
-        let d = service.database().delete::<example::Example>(id).await;
-
-        match d {
-            Ok(example) => match example {
-                Some(e) => rpc::ok(example::DeleteExampleResponse { example: Some(e) }),
-                None => rpc::error(rpc::ErrorCode::NotFound),
-            },
-            Err(_) => rpc::error(rpc::ErrorCode::Internal),
-        }
+        let d = service.database().delete::<example::Example>(id).await?;
+        rpc::ok(example::DeleteExampleResponse { example: Some(d) })
     }
 }
 
