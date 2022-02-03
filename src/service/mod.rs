@@ -16,6 +16,7 @@ use crate::database;
 use crate::definition::{ServiceDefinition, ServiceKind};
 use crate::error::Result;
 use crate::grpc;
+use crate::http as microhttp;
 use crate::service::builder::ServiceBuilder;
 
 #[derive(Debug)]
@@ -139,6 +140,32 @@ impl Service {
     /// Give access to the service database driver.
     pub fn database(&self) -> Arc<database::Database> {
         self.database.clone()
+    }
+
+    /// Puts the service to run in the HTTP mode.
+    pub async fn serve_as_http(
+        service: &Arc<Service>,
+        http_server: rocket::Rocket<rocket::Build>,
+    ) -> std::result::Result<(), Box<dyn std::error::Error>> {
+        service.logger.infof(
+            "service is running",
+            logger::fields! {
+                "service.address" => FieldValue::String(format!(":{}", service.port)),
+            },
+        );
+
+        http_server.manage(service.clone())
+            .ignite()
+            .await?
+            .launch()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Builds and returns default settings for HTTP services.
+    pub fn http_config(&self) -> figment::Figment {
+        microhttp::config(self.port, &self.name)
     }
 }
 

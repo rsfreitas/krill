@@ -5,6 +5,7 @@ pub mod database;
 pub mod error;
 pub mod extensions;
 pub mod grpc;
+pub mod http;
 pub mod service;
 
 mod config;
