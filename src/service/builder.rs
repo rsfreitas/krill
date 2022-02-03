@@ -3,7 +3,7 @@ use crate::error::Result;
 use crate::service::Service;
 use std::sync::Arc;
 
-const SERVICE_PORT: i64 = 9090;
+pub(crate) const SERVICE_PORT: i64 = 9090;
 
 pub struct ServiceBuilder {
     pub(crate) port: i64,

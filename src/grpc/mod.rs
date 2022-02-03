@@ -102,7 +102,7 @@ impl Client {
     pub fn url(service_name: &str) -> String {
         let host =
             Config::get_os_env("SERVICES_HOSTNAME", Some("service.local".to_string())).unwrap();
-        let port = Config::get_os_env("SERVICES_GRPC_PORT", Some(8080)).unwrap();
+        let port = Config::get_os_env("SERVICES_GRPC_PORT", Some(service::builder::SERVICE_PORT)).unwrap();
         format!("http://{}.{}:{}", service_name, host, port)
     }
 
