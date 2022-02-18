@@ -1,10 +1,10 @@
-# micro
+# krill
 
-micro is a rust framework for building microservices.
+krill is a rust framework for building microservices.
 
 ## Overview
 
-micro is a framework for building microservices in rust using protobuf as
+krill is a framework for building microservices in rust using protobuf as
 their API definition.
 
 ## Features
@@ -16,11 +16,11 @@ their API definition.
 
 ## Getting Started
 
-To make use of micro, one can do the following:
+To make use of krill, one can do the following:
 ```rust
-extern crate micro;
+extern crate krill;
 
-use micro::service::{
+use krill::service::{
     builder::ServiceBuilder,
     Service,
 };
@@ -92,9 +92,9 @@ message DeleteExampleResponse {
 }
 ```
 
-Service micro source:
+Service krill source:
 ```rust
-extern crate micro;
+extern crate krill;
 extern crate tonic;
 
 pub mod example {
@@ -102,8 +102,8 @@ pub mod example {
 }
 
 use example::example_service_server::{ExampleService, ExampleServiceServer};
-use micro::grpc::rpc;
-use micro::{
+use krill::grpc::rpc;
+use krill::{
     extensions::database::Id,
     service::{builder::ServiceBuilder, Service},
 };
@@ -151,7 +151,7 @@ impl ExampleService for Server {
         let example::UpdateExampleRequest { id, name, value } = &request.into_inner();
         let up = service
             .database()
-            .update::<example::Example>(id, micro::doc! {"name": name, "value": value})
+            .update::<example::Example>(id, krill::doc! {"name": name, "value": value})
             .await?;
 
         rpc::ok(example::UpdateExampleResponse { example: Some(up) })
@@ -177,7 +177,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## TODO
 
-* HTTP microservices
 * Pubsub microservices
 * Task microservices (cronjob)
 * Pluggable interfaces
