@@ -154,7 +154,8 @@ impl Service {
             },
         );
 
-        http_server.manage(service.clone())
+        http_server
+            .manage(service.clone())
             .ignite()
             .await?
             .launch()
